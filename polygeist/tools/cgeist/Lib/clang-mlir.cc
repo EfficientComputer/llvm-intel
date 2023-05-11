@@ -2527,6 +2527,20 @@ void MLIRASTConsumer::setMLIRFunctionAttributes(FunctionOpInterface Function,
     LLVM::Linkage Lnk = getMLIRLinkage(getLLVMLinkageType(FD));
     AttrBuilder.addAttribute("llvm.linkage", LLVM::LinkageAttr::get(Ctx, Lnk));
 
+    // Annotations
+    SmallVector<mlir::Attribute> Annotations;
+    if (!FD.attrs().empty()) {
+      mlir::OpBuilder Builder(Ctx);
+      for (auto const Attr : FD.attrs()) {
+        if (auto Anno = dyn_cast<clang::AnnotateAttr>(Attr)) {
+          Annotations.emplace_back(Builder.getStringAttr(Anno->getAnnotation()));
+        }
+      }
+    }
+    if (!Annotations.empty()) {
+      OpBuilder Builder(Ctx);
+      Function->setAttr("annotations", Builder.getArrayAttr(Annotations));
+    }
     // HACK: we want to avoid setting additional attributes on non-sycl
     // functions because we do not want to adjust the test cases at this time
     // (if we did we would have merge conflicts if we ever update polygeist).
